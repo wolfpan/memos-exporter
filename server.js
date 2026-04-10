@@ -12,7 +12,6 @@ app.use(express.json());
 app.use(cors());
 app.use(express.static('public'));
 
-// 调用 AI 接口生成摘要的辅助函数
 async function generateSummary(content, aiUrl, aiToken) {
     if (!content || content.trim() === '') return '未命名';
     
@@ -42,7 +41,6 @@ async function generateSummary(content, aiUrl, aiToken) {
         });
 
         let summary = response.data.choices[0].message.content.trim();
-        // 增强清理：去除 Windows 非法字符以及 # 和反引号等常见 markdown 符号
         summary = summary.replace(/[\/\\:\*\?"<>\|\n\r#`]/g, '').substring(0, 20).trim();
         return summary || '未命名';
     } catch (error) {
@@ -52,7 +50,8 @@ async function generateSummary(content, aiUrl, aiToken) {
 }
 
 app.post('/api/export', async (req, res) => {
-    const { host, token, outputDir, aiUrl, aiToken } = req.body;
+    // 接收前端传来的 includeFrontmatter 参数
+    const { host, token, outputDir, aiUrl, aiToken, includeFrontmatter } = req.body;
 
     if (!host || !token || !outputDir) {
         return res.status(400).json({ success: false, message: '请提供完整的 Memos URL、Token 和输出路径' });
@@ -107,12 +106,10 @@ app.post('/api/export', async (req, res) => {
                 summary = memo.content.substring(0, 20).replace(/[\/\\:\*\?"<>\|\n\r#`]/g, '').trim() || '未命名';
             }
 
-            // 新的命名逻辑：标题_时间
             let baseFilename = `${summary}_${dateStr}`;
             let filename = `${baseFilename}.md`;
             let filepath = path.join(resolvedPath, filename);
 
-            // 防重名逻辑：如果文件已存在，则追加 (1), (2) 等序号
             let counter = 1;
             while (fs.existsSync(filepath)) {
                 filename = `${baseFilename}_(${counter}).md`;
@@ -120,16 +117,20 @@ app.post('/api/export', async (req, res) => {
                 counter++;
             }
 
-            const markdownContent = `---
+            // 根据 includeFrontmatter 决定写入的内容格式
+            let finalContent = memo.content;
+            if (includeFrontmatter) {
+                finalContent = `---
 uid: ${memo.uid || 'null'}
 createTime: ${memo.createTime}
 updateTime: ${memo.updateTime}
 visibility: ${memo.visibility}
 ---
 
-${memo.content}
-`;
-            fs.writeFileSync(filepath, markdownContent, 'utf8');
+${memo.content}`;
+            }
+
+            fs.writeFileSync(filepath, finalContent, 'utf8');
         }
 
         res.json({ 

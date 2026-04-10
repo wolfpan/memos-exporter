@@ -13,6 +13,9 @@
         .form-group { margin-bottom: 15px; }
         label { display: block; font-weight: bold; margin-bottom: 5px; font-size: 14px; }
         input[type="text"], input[type="password"] { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 14px; }
+        .checkbox-group { display: flex; align-items: center; margin-top: 10px; margin-bottom: 20px; }
+        .checkbox-group input { width: auto; margin-right: 8px; cursor: pointer; }
+        .checkbox-group label { margin-bottom: 0; font-weight: normal; cursor: pointer; }
         .help-text { font-size: 12px; color: #777; margin-top: 4px; line-height: 1.4; }
         button { width: 100%; padding: 14px; background-color: #007bff; color: white; border: none; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; transition: background-color 0.2s; margin-top: 15px; }
         button:hover { background-color: #0056b3; }
@@ -43,15 +46,19 @@
         <label for="outputDir">本地导出文件夹绝对路径</label>
         <input type="text" id="outputDir" placeholder="例如: D:\MemosBackup" required>
     </div>
+    
+    <div class="checkbox-group">
+        <input type="checkbox" id="includeFrontmatter" checked>
+        <label for="includeFrontmatter">保留 YAML 元数据标签 (如 uid, createTime 等信息)</label>
+    </div>
 
     <div class="section-title">🤖 AI 智能命名设置 (选填)</div>
     <div class="warning-box">
-        💡 提示：如果填写此项，系统将调用 AI 为每个文件生成摘要作为文件名。<b>由于需要逐条请求大模型，导出耗时会变长。</b>如果你有 500 条记录，可能需要几分钟时间，请打开 Node.js 终端查看实时进度。如果不填，则默认截取前 20 个字。
+        💡 提示：如果填写此项，系统将调用 AI 为每个文件生成摘要作为文件名。由于需要逐条请求大模型，导出耗时会变长。如果不填，则默认截取前 20 个字。
     </div>
     <div class="form-group">
         <label for="aiUrl">OpenAI 格式 API 地址 (Base URL)</label>
-        <input type="text" id="aiUrl" placeholder="例如: https://api.deepseek.com">
-        <div class="help-text">只需填入基础地址即可，脚本会自动附加 `/v1/chat/completions`。</div>
+        <input type="text" id="aiUrl" value="https://api.deepseek.com" placeholder="例如: https://api.deepseek.com">
     </div>
     <div class="form-group">
         <label for="aiToken">AI API Key (Token)</label>
@@ -64,10 +71,25 @@
 </div>
 
 <script>
+    // 页面加载时，尝试从 localStorage 读取已保存的配置
+    window.onload = function() {
+        if(localStorage.getItem('memos_host')) document.getElementById('host').value = localStorage.getItem('memos_host');
+        if(localStorage.getItem('memos_token')) document.getElementById('token').value = localStorage.getItem('memos_token');
+        if(localStorage.getItem('memos_outputDir')) document.getElementById('outputDir').value = localStorage.getItem('memos_outputDir');
+        if(localStorage.getItem('memos_aiUrl')) document.getElementById('aiUrl').value = localStorage.getItem('memos_aiUrl');
+        if(localStorage.getItem('memos_aiToken')) document.getElementById('aiToken').value = localStorage.getItem('memos_aiToken');
+        
+        const savedFrontmatter = localStorage.getItem('memos_includeFrontmatter');
+        if (savedFrontmatter !== null) {
+            document.getElementById('includeFrontmatter').checked = savedFrontmatter === 'true';
+        }
+    };
+
     async function startExport() {
         const host = document.getElementById('host').value.trim();
         const token = document.getElementById('token').value.trim();
         const outputDir = document.getElementById('outputDir').value.trim();
+        const includeFrontmatter = document.getElementById('includeFrontmatter').checked;
         
         const aiUrl = document.getElementById('aiUrl').value.trim();
         const aiToken = document.getElementById('aiToken').value.trim();
@@ -79,6 +101,14 @@
             showStatus('请填写完整的 Memos 基础设置！', 'error');
             return;
         }
+
+        // 保存配置到 localStorage，方便下次直接使用
+        localStorage.setItem('memos_host', host);
+        localStorage.setItem('memos_token', token);
+        localStorage.setItem('memos_outputDir', outputDir);
+        localStorage.setItem('memos_aiUrl', aiUrl);
+        localStorage.setItem('memos_aiToken', aiToken);
+        localStorage.setItem('memos_includeFrontmatter', includeFrontmatter);
 
         // UI 状态更新
         btn.disabled = true;
@@ -95,7 +125,8 @@
             const response = await fetch('/api/export', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ host, token, outputDir, aiUrl, aiToken })
+                // 把 includeFrontmatter 参数也发给后端
+                body: JSON.stringify({ host, token, outputDir, aiUrl, aiToken, includeFrontmatter })
             });
 
             const result = await response.json();
