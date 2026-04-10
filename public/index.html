@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Memos 到 Markdown 导出工具</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #f4f4f9; padding: 40px; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+        h1 { font-size: 24px; margin-bottom: 20px; text-align: center; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; font-weight: bold; margin-bottom: 5px; font-size: 14px; }
+        input[type="text"] { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 14px; }
+        .help-text { font-size: 12px; color: #666; margin-top: 4px; }
+        button { width: 100%; padding: 12px; background-color: #007bff; color: white; border: none; border-radius: 6px; font-size: 16px; cursor: pointer; transition: background-color 0.2s; }
+        button:hover { background-color: #0056b3; }
+        button:disabled { background-color: #a0c4ff; cursor: not-allowed; }
+        #status { margin-top: 20px; padding: 15px; border-radius: 6px; display: none; font-size: 14px; line-height: 1.5; }
+        .success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .info { background-color: #e2e3e5; color: #383d41; border: 1px solid #d6d8db; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Memos 导出工具</h1>
+    
+    <div class="form-group">
+        <label for="host">Memos 地址 (URL)</label>
+        <input type="text" id="host" placeholder="例如: https://memos.yourdomain.com" required>
+    </div>
+
+    <div class="form-group">
+        <label for="token">Access Token (访问令牌)</label>
+        <input type="text" id="token" placeholder="eyJhbGciOiJIUzI1NiIsIn..." required>
+        <div class="help-text">在 Memos 设置 -> Access Tokens 中生成并复制。</div>
+    </div>
+
+    <div class="form-group">
+        <label for="outputDir">本地导出文件夹路径</label>
+        <input type="text" id="outputDir" placeholder="例如: ./my_memos 或 C:\Users\xxx\Desktop\Memos" required>
+        <div class="help-text">脚本端所在的本地目录的相对或绝对路径。</div>
+    </div>
+
+    <button id="exportBtn" onclick="startExport()">开始导出为 Markdown</button>
+
+    <div id="status"></div>
+</div>
+
+<script>
+    async function startExport() {
+        const host = document.getElementById('host').value.trim();
+        const token = document.getElementById('token').value.trim();
+        const outputDir = document.getElementById('outputDir').value.trim();
+        const statusDiv = document.getElementById('status');
+        const btn = document.getElementById('exportBtn');
+
+        if (!host || !token || !outputDir) {
+            showStatus('请填写所有必填字段！', 'error');
+            return;
+        }
+
+        // UI 状态更新
+        btn.disabled = true;
+        btn.innerText = '正在导出，请稍候...';
+        showStatus('正在连接 Memos 服务器并拉取数据，这可能需要一点时间...', 'info');
+
+        try {
+            const response = await fetch('/api/export', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ host, token, outputDir })
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                showStatus(result.message, 'success');
+            } else {
+                showStatus(`导出失败: ${result.message}`, 'error');
+            }
+        } catch (error) {
+            showStatus(`网络错误或服务异常: ${error.message}`, 'error');
+        } finally {
+            btn.disabled = false;
+            btn.innerText = '开始导出为 Markdown';
+        }
+    }
+
+    function showStatus(message, type) {
+        const statusDiv = document.getElementById('status');
+        statusDiv.style.display = 'block';
+        statusDiv.className = type;
+        statusDiv.innerText = message;
+    }
+</script>
+
+</body>
+</html>
