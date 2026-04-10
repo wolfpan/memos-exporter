@@ -3,47 +3,62 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Memos 到 Markdown 导出工具</title>
+    <title>Memos 到 Markdown 导出工具 (AI增强版)</title>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #f4f4f9; padding: 40px; color: #333; }
-        .container { max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
-        h1 { font-size: 24px; margin-bottom: 20px; text-align: center; }
+        .container { max-width: 650px; margin: 0 auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+        h1 { font-size: 24px; margin-bottom: 5px; text-align: center; }
+        .subtitle { text-align: center; color: #666; font-size: 14px; margin-bottom: 25px; }
+        .section-title { font-size: 16px; border-bottom: 1px solid #eee; padding-bottom: 8px; margin-top: 25px; margin-bottom: 15px; color: #0056b3; font-weight: bold; }
         .form-group { margin-bottom: 15px; }
         label { display: block; font-weight: bold; margin-bottom: 5px; font-size: 14px; }
-        input[type="text"] { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 14px; }
-        .help-text { font-size: 12px; color: #666; margin-top: 4px; }
-        button { width: 100%; padding: 12px; background-color: #007bff; color: white; border: none; border-radius: 6px; font-size: 16px; cursor: pointer; transition: background-color 0.2s; }
+        input[type="text"], input[type="password"] { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 14px; }
+        .help-text { font-size: 12px; color: #777; margin-top: 4px; line-height: 1.4; }
+        button { width: 100%; padding: 14px; background-color: #007bff; color: white; border: none; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; transition: background-color 0.2s; margin-top: 15px; }
         button:hover { background-color: #0056b3; }
         button:disabled { background-color: #a0c4ff; cursor: not-allowed; }
         #status { margin-top: 20px; padding: 15px; border-radius: 6px; display: none; font-size: 14px; line-height: 1.5; }
         .success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
         .error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
         .info { background-color: #e2e3e5; color: #383d41; border: 1px solid #d6d8db; }
+        .warning-box { background-color: #fff3cd; color: #856404; padding: 10px; border-radius: 6px; font-size: 13px; margin-bottom: 15px; border: 1px solid #ffeeba; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>Memos 导出工具</h1>
+    <h1>Memos 智能导出工具</h1>
+    <div class="subtitle">将 Memos 导出为 Markdown，并利用 AI 智能命名</div>
     
+    <div class="section-title">📦 基础设置 (必填)</div>
     <div class="form-group">
         <label for="host">Memos 地址 (URL)</label>
         <input type="text" id="host" placeholder="例如: https://memos.yourdomain.com" required>
     </div>
-
     <div class="form-group">
-        <label for="token">Access Token (访问令牌)</label>
-        <input type="text" id="token" placeholder="eyJhbGciOiJIUzI1NiIsIn..." required>
-        <div class="help-text">在 Memos 设置 -> Access Tokens 中生成并复制。</div>
+        <label for="token">Memos Access Token</label>
+        <input type="password" id="token" placeholder="eyJhbGciOiJIUzI1NiIsIn..." required>
+    </div>
+    <div class="form-group">
+        <label for="outputDir">本地导出文件夹绝对路径</label>
+        <input type="text" id="outputDir" placeholder="例如: D:\MemosBackup" required>
     </div>
 
+    <div class="section-title">🤖 AI 智能命名设置 (选填)</div>
+    <div class="warning-box">
+        💡 提示：如果填写此项，系统将调用 AI 为每个文件生成摘要作为文件名。<b>由于需要逐条请求大模型，导出耗时会变长。</b>如果你有 500 条记录，可能需要几分钟时间，请打开 Node.js 终端查看实时进度。如果不填，则默认截取前 20 个字。
+    </div>
     <div class="form-group">
-        <label for="outputDir">本地导出文件夹路径</label>
-        <input type="text" id="outputDir" placeholder="例如: ./my_memos 或 C:\Users\xxx\Desktop\Memos" required>
-        <div class="help-text">脚本端所在的本地目录的相对或绝对路径。</div>
+        <label for="aiUrl">OpenAI 格式 API 地址 (Base URL)</label>
+        <input type="text" id="aiUrl" placeholder="例如: https://api.deepseek.com">
+        <div class="help-text">只需填入基础地址即可，脚本会自动附加 `/v1/chat/completions`。</div>
+    </div>
+    <div class="form-group">
+        <label for="aiToken">AI API Key (Token)</label>
+        <input type="password" id="aiToken" placeholder="sk-xxxxxxxxxxxxxxxxxxx">
     </div>
 
-    <button id="exportBtn" onclick="startExport()">开始导出为 Markdown</button>
+    <button id="exportBtn" onclick="startExport()">🚀 开始智能导出</button>
 
     <div id="status"></div>
 </div>
@@ -53,24 +68,34 @@
         const host = document.getElementById('host').value.trim();
         const token = document.getElementById('token').value.trim();
         const outputDir = document.getElementById('outputDir').value.trim();
+        
+        const aiUrl = document.getElementById('aiUrl').value.trim();
+        const aiToken = document.getElementById('aiToken').value.trim();
+
         const statusDiv = document.getElementById('status');
         const btn = document.getElementById('exportBtn');
 
         if (!host || !token || !outputDir) {
-            showStatus('请填写所有必填字段！', 'error');
+            showStatus('请填写完整的 Memos 基础设置！', 'error');
             return;
         }
 
         // UI 状态更新
         btn.disabled = true;
-        btn.innerText = '正在导出，请稍候...';
-        showStatus('正在连接 Memos 服务器并拉取数据，这可能需要一点时间...', 'info');
+        
+        if (aiUrl && aiToken) {
+            btn.innerText = '正在使用 AI 逐条处理并导出，请耐心等待...';
+            showStatus('正在拉取数据并请求 AI 进行内容概括。这可能需要几分钟，请关注你电脑运行此程序的黑色命令窗口(终端)以查看实时进度。', 'info');
+        } else {
+            btn.innerText = '正在导出，请稍候...';
+            showStatus('正在连接 Memos 服务器并拉取数据...', 'info');
+        }
 
         try {
             const response = await fetch('/api/export', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ host, token, outputDir })
+                body: JSON.stringify({ host, token, outputDir, aiUrl, aiToken })
             });
 
             const result = await response.json();
@@ -81,10 +106,10 @@
                 showStatus(`导出失败: ${result.message}`, 'error');
             }
         } catch (error) {
-            showStatus(`网络错误或服务异常: ${error.message}`, 'error');
+            showStatus(`网络错误或服务超时 (如果数据量很大，前端可能超时，但后台可能仍在运行，请检查 Node 终端状态): ${error.message}`, 'error');
         } finally {
             btn.disabled = false;
-            btn.innerText = '开始导出为 Markdown';
+            btn.innerText = '🚀 开始智能导出';
         }
     }
 
